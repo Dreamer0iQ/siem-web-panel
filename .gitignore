@@ -14,3 +14,4 @@ backend/data/security/security_events.json
 backend/data/security/events.json
 agent/logs/agent.log
 agent/run-agent-auto.sh
+.DS_Store
