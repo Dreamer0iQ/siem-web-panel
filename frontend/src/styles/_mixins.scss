@@ -1,0 +1,103 @@
+@use './variables' as vars;
+
+@mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@mixin flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+@mixin card {
+    background: vars.$color-bg-secondary;
+    border-radius: vars.$radius-lg;
+    box-shadow: vars.$shadow-md;
+    padding: vars.$spacing-lg;
+    transition: box-shadow vars.$transition-base;
+
+    &:hover {
+        box-shadow: vars.$shadow-lg;
+    }
+}
+
+@mixin button-base {
+    padding: vars.$spacing-sm vars.$spacing-lg;
+    border-radius: vars.$radius-md;
+    font-weight: vars.$font-weight-medium;
+    font-size: vars.$font-size-sm;
+    cursor: pointer;
+    transition: all vars.$transition-fast;
+    border: none;
+    outline: none;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+@mixin scrollbar {
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: vars.$color-snow;
+        border-radius: vars.$radius-full;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: vars.$color-silver;
+        border-radius: vars.$radius-full;
+
+        &:hover {
+            background: vars.$color-silver-dark;
+        }
+    }
+}
+
+@mixin truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@mixin shimmer {
+    background: linear-gradient(90deg,
+            vars.$color-snow 0%,
+            vars.$color-silver 50%,
+            vars.$color-snow 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@mixin fade-in {
+    animation: fadeIn vars.$transition-base;
+}

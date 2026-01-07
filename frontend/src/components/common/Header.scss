@@ -1,0 +1,75 @@
+@use '../../styles/variables' as *;
+
+.pt-nav {
+    background-color: #263238;
+    color: #fff;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 $spacing-lg;
+    gap: $spacing-xl;
+    width: 100%;
+
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        font-weight: bold;
+        font-size: $font-size-lg;
+        margin-right: $spacing-xl;
+
+        span {
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 2px; // Very close tabs
+        height: 100%;
+
+        .nav-link {
+            background: none;
+            border: none;
+            color: #B0BEC5;
+            text-decoration: none;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 $spacing-lg;
+            font-size: $font-size-sm;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-top: 3px solid transparent;
+            cursor: pointer;
+
+            &:hover:not(.disabled) {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: #fff;
+            }
+
+            &.active {
+                color: #fff;
+                background-color: #37474F;
+                border-top-color: $color-primary;
+            }
+
+            &.disabled {
+                opacity: 0.5;
+                cursor: default;
+            }
+
+            &.logout {
+                color: #B0BEC5;
+
+                &:hover {
+                    color: $color-danger;
+                }
+            }
+        }
+    }
+}

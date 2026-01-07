@@ -1,0 +1,167 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.login-page {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $color-bg-body;
+    overflow: hidden;
+    font-family: $font-family-serif;
+
+    .login-background-tree {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.08;
+        color: #2C3E50;
+
+        .big-tree {
+            width: 600px;
+            height: 600px;
+        }
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 480px;
+        padding: $spacing-xl;
+        background: transparent;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .auth-tabs {
+        display: flex;
+        gap: $spacing-xl;
+        margin-bottom: $spacing-2xl;
+
+        .tab-btn {
+            background: none;
+            border: none;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 2rem;
+            color: $color-text-primary;
+            cursor: pointer;
+            padding-bottom: $spacing-xs;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            position: relative;
+
+            &.active {
+                opacity: 1;
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 1px;
+                    background-color: currentColor;
+                }
+            }
+
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+    }
+
+    .minimal-form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xl;
+
+        .error-message {
+            color: $color-danger;
+            font-size: $font-size-sm;
+            text-align: center;
+            font-family: $font-family-sans;
+        }
+
+        .name-row {
+            display: flex;
+            gap: $spacing-lg;
+
+            .form-group {
+                flex: 1;
+            }
+        }
+
+        .form-group {
+            position: relative;
+
+            &.underline {
+                display: flex;
+                flex-direction: column-reverse; // Input first for focus tricks if needed, but flex column is fine
+
+                label {
+                    font-size: 1rem;
+                    color: $color-text-primary;
+                    margin-bottom: $spacing-xs;
+                    font-family: $font-family-sans; // Labels often sans-serif even in serif designs
+                    font-weight: normal;
+                }
+
+                input {
+                    background: transparent;
+                    border: none;
+                    border-bottom: 1px solid #000; // Stark black line
+                    border-radius: 0;
+                    padding: $spacing-sm 0;
+                    font-size: 1rem;
+                    color: $color-text-primary;
+                    outline: none;
+                    transition: border-color $transition-base;
+
+                    &:focus {
+                        border-bottom-width: 2px;
+                    }
+
+                    &::placeholder {
+                        color: transparent;
+                    }
+                }
+            }
+        }
+
+        .form-actions {
+            margin-top: $spacing-xl;
+            display: flex;
+            justify-content: flex-end;
+
+            .submit-btn {
+                background: #000;
+                color: #fff;
+                border: none;
+                padding: $spacing-md $spacing-2xl;
+                font-family: $font-family-sans;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-size: $font-size-sm;
+                cursor: pointer;
+                transition: opacity 0.3s;
+
+                &:disabled {
+                    opacity: 0.7;
+                    cursor: not-allowed;
+                }
+
+                &:hover:not(:disabled) {
+                    opacity: 0.8;
+                }
+            }
+        }
+    }
+}

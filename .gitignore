@@ -1,0 +1,16 @@
+agent/.offsets/auditd.offset
+agent/.offsets/auth.offset
+agent/.offsets/bash_history.offset
+agent/.offsets/syslog.offset
+frontend/src/assets/react.svg
+docs/EXAMPLES.md
+docs/FRONTEND_SHOWCASE.md
+docs/SHOWCASE.md
+docs/ARCHITECTURE.md
+bin/siem-server
+bin/siem-agent
+backend/data/security/events.json.backup
+backend/data/security/security_events.json
+backend/data/security/events.json
+agent/logs/agent.log
+agent/run-agent-auto.sh

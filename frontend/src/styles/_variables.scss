@@ -1,0 +1,73 @@
+$color-primary: #2C3E50; // Deep Blue/Black for strictness
+$color-primary-dark: #1a252f;
+$color-primary-light: #ecf0f1;
+
+$color-success: #27ae60; // Technical Green
+$color-warning: #f39c12; // Technical Orange
+$color-danger: #c0392b; // Technical Red
+$color-info: #2980b9;
+
+$color-bg-body: #F5F7FA; // Light technical gray
+$color-bg-card: #FFFFFF;
+$color-bg-header: #FFFFFF;
+$color-bg-sidebar: #FFFFFF;
+
+$color-text-primary: #2C3E50; // Dark Blue/Gray
+$color-text-secondary: #7F8C8D; // Muted Gray
+$color-text-light: #BDC3C7;
+$color-text-inverse: #FFFFFF;
+
+$color-border: #E2E8F0; // Light Gray Border
+
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 3rem;
+$spacing-2xl: 5rem;
+
+$font-family-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-serif: 'Times New Roman', Times, serif;
+
+$font-size-xs: 11px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-lg: 16px;
+$font-size-xl: 20px;
+$font-size-2xl: 32px;
+$font-size-3xl: 48px;
+
+$shadow-sm: none;
+$shadow-md: none;
+$shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.05); // Very subtle shadow
+$shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+$z-modal: 1000;
+
+$transition-base: 0.2s ease-in-out;
+$transition-fast: 0.15s ease-in-out;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$radius-sm: 0px;
+$radius-md: 0px;
+$radius-lg: 0px;
+$radius-full: 0px;
+
+$color-bg-secondary: $color-bg-card;
+$color-bg-primary: $color-bg-body;
+$color-snow: #F8F9F9; // Very light gray for hover
+$color-silver: #E2E8F0;
+$color-silver-dark: #BDC3C7;
+$color-winter-blue: $color-primary;
+$color-winter-blue-dark: $color-primary-dark;
+$color-winter-blue-darker: #2C3E50;
+$color-winter-blue-light: $color-primary-light;
+$color-critical: $color-danger;
+$color-high: $color-warning;
+$color-medium: #f1c40f;
+$color-low: $color-success;
+$font-family-primary: $font-family-sans;
