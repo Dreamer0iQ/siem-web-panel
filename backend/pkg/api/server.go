@@ -3,7 +3,6 @@ package api
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,13 +12,21 @@ import (
 	"time"
 
 	"siem-project/backend/pkg/storage"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Server struct {
-	storage *storage.Storage
-	port    int
-	server  *http.Server
-	users   map[string]string // username -> sha256(password)
+	storage   *storage.Storage
+	port      int
+	server    *http.Server
+	users     map[string]string // username -> sha256(password)
+	jwtSecret []byte            // JWT signing key
+}
+
+type Claims struct {
+	Username string `json:"username"`
+	jwt.RegisteredClaims
 }
 
 func NewServer(store *storage.Storage, port int) *Server {
@@ -28,10 +35,13 @@ func NewServer(store *storage.Storage, port int) *Server {
 	users["admin"] = hashPassword("admin123")
 	users["operator"] = hashPassword("operator123")
 
+	jwtSecret := []byte("your-super-secret-jwt-key-change-in-production")
+
 	return &Server{
-		storage: store,
-		port:    port,
-		users:   users,
+		storage:   store,
+		port:      port,
+		users:     users,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -43,11 +53,13 @@ func hashPassword(password string) string {
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
+	// Публичные эндпоинты
+	mux.HandleFunc("/api/login", s.corsMiddleware(s.handleLogin))
+	mux.HandleFunc("/api/health", s.corsMiddleware(s.handleHealth))
+
+	// Защищенные эндпоинты (требуют JWT)
 	mux.HandleFunc("/api/events", s.corsMiddleware(s.authMiddleware(s.handleEvents)))
 	mux.HandleFunc("/api/stats", s.corsMiddleware(s.authMiddleware(s.handleStats)))
-
-	// Health endpoint открыт для мониторинга
-	mux.HandleFunc("/api/health", s.corsMiddleware(s.handleHealth))
 
 	mux.HandleFunc("/api/dashboard/agents", s.corsMiddleware(s.authMiddleware(s.handleDashboardAgents)))
 	mux.HandleFunc("/api/dashboard/logins", s.corsMiddleware(s.authMiddleware(s.handleDashboardLogins)))
@@ -80,39 +92,48 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
-			w.Header().Set("WWW-Authenticate", `Basic realm="SIEM System"`)
 			http.Error(w, "Unauthorized: missing Authorization header", http.StatusUnauthorized)
 			return
 		}
 
-		if !strings.HasPrefix(auth, "Basic ") {
-			http.Error(w, "Unauthorized: invalid Authorization format", http.StatusUnauthorized)
+		if !strings.HasPrefix(auth, "Bearer ") {
+			http.Error(w, "Unauthorized: invalid Authorization format (expected Bearer token)", http.StatusUnauthorized)
 			return
 		}
 
-		payload := strings.TrimPrefix(auth, "Basic ")
-		decoded, err := base64.StdEncoding.DecodeString(payload)
+		tokenString := strings.TrimPrefix(auth, "Bearer ")
+
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return s.jwtSecret, nil
+		})
+
 		if err != nil {
-			http.Error(w, "Unauthorized: invalid base64 encoding", http.StatusUnauthorized)
+			log.Printf("JWT parsing error: %v", err)
+			http.Error(w, "Unauthorized: invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		credentials := strings.SplitN(string(decoded), ":", 2)
-		if len(credentials) != 2 {
-			http.Error(w, "Unauthorized: invalid credentials format", http.StatusUnauthorized)
+		if !token.Valid {
+			http.Error(w, "Unauthorized: token is not valid", http.StatusUnauthorized)
 			return
 		}
 
-		username := credentials[0]
-		password := credentials[1]
-
-		if !s.validateCredentials(username, password) {
-			log.Printf("Failed login attempt for user: %s from %s", username, r.RemoteAddr)
-			http.Error(w, "Unauthorized: invalid username or password", http.StatusUnauthorized)
+		// Проверяем, что пользователь существует
+		if _, exists := s.users[claims.Username]; !exists {
+			log.Printf("Token valid but user not found: %s", claims.Username)
+			http.Error(w, "Unauthorized: user not found", http.StatusUnauthorized)
 			return
 		}
 
-		log.Printf("Successful authentication for user: %s from %s", username, r.RemoteAddr)
+		log.Printf("Successful JWT authentication for user: %s from %s", claims.Username, r.RemoteAddr)
+
+		// Добавляем username в контекст (можно использовать в handlers)
+		// r = r.WithContext(context.WithValue(r.Context(), "username", claims.Username))
+
 		next(w, r)
 	}
 }
@@ -276,28 +297,55 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expectedPasswordHash, ok := s.users[req.Username]
-	if !ok {
+	// Валидация credentials
+	if !s.validateCredentials(req.Username, req.Password) {
+		log.Printf("Failed login attempt for user: %s from %s", req.Username, r.RemoteAddr)
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	providedPasswordHash := hashPassword(req.Password)
-	if subtle.ConstantTimeCompare([]byte(expectedPasswordHash), []byte(providedPasswordHash)) != 1 {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+	// Генерируем JWT токен
+	token, err := s.generateJWT(req.Username)
+	if err != nil {
+		log.Printf("Error generating JWT for user %s: %v", req.Username, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	token := generateToken(req.Username)
+	log.Printf("Successful login for user: %s from %s", req.Username, r.RemoteAddr)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "success",
 		"message": "Login successful",
 		"token":   token,
+		"user":    req.Username,
 	})
 }
 
-func generateToken(username string) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, time.Now().Add(24*time.Hour).String())))
+// generateJWT создает JWT токен для пользователя
+func (s *Server) generateJWT(username string) (string, error) {
+	// Токен действителен 24 часа
+	expirationTime := time.Now().Add(24 * time.Hour)
+
+	// Создаем claims
+	claims := &Claims{
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "siem-backend",
+		},
+	}
+
+	// Создаем токен с алгоритмом HS256
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Подписываем токен
+	tokenString, err := token.SignedString(s.jwtSecret)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }

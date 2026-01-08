@@ -1,35 +1,47 @@
-const AUTH_TOKEN_KEY = 'siem_auth_token';
+// Используем sessionStorage для хранения JWT токена
+const AUTH_TOKEN_KEY = 'siem_jwt_token';
 const USERNAME_KEY = 'siem_username';
-
-const SESSION_TIMEOUT = 30 * 60 * 1000;
-const SESSION_TIMESTAMP_KEY = 'siem_session_timestamp';
+const TOKEN_EXPIRY_KEY = 'siem_token_expiry';
 
 export interface AuthCredentials {
   username: string;
   password: string;
 }
 
+export interface LoginResponse {
+  status: string;
+  message: string;
+  token: string;
+  user: string;
+}
+
 export const authService = {
   login: async (credentials: AuthCredentials): Promise<boolean> => {
     try {
-      const token = btoa(`${credentials.username}:${credentials.password}`);
-      
-      const statsResponse = await fetch('/api/stats', {
+      const response = await fetch('/api/login', {
+        method: 'POST',
         headers: {
-          'Authorization': `Basic ${token}`
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
       });
 
-      if (!statsResponse.ok) {
-        console.error('Authentication failed:', statsResponse.status);
+      if (!response.ok) {
+        console.error('Login failed:', response.status);
         return false;
       }
 
-      sessionStorage.setItem(AUTH_TOKEN_KEY, token);
-      sessionStorage.setItem(USERNAME_KEY, credentials.username);
-      sessionStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+      const data: LoginResponse = await response.json();
+
+      // Сохраняем JWT токен и username
+      sessionStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      sessionStorage.setItem(USERNAME_KEY, data.user);
       
-      console.log('Authentication successful for user:', credentials.username);
+      // Сохраняем время истечения (токен живет 24 часа)
+      const expiryTime = Date.now() + (24 * 60 * 60 * 1000);
+      sessionStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+      
+      console.log('JWT authentication successful for user:', data.user);
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -38,14 +50,16 @@ export const authService = {
   },
 
   logout: (): void => {
+    // Очищаем все данные аутентификации
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
     sessionStorage.removeItem(USERNAME_KEY);
-    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
     console.log('User logged out');
   },
 
   getToken: (): string | null => {
-    if (!authService.isSessionValid()) {
+    // Проверяем истечение токена
+    if (!authService.isTokenValid()) {
       authService.logout();
       return null;
     }
@@ -58,46 +72,40 @@ export const authService = {
 
   isAuthenticated: (): boolean => {
     const hasToken = !!sessionStorage.getItem(AUTH_TOKEN_KEY);
-    const sessionValid = authService.isSessionValid();
+    const tokenValid = authService.isTokenValid();
     
-    if (hasToken && !sessionValid) {
-      // Сессия истекла - очищаем
+    if (hasToken && !tokenValid) {
+      // Токен истек - очищаем
       authService.logout();
       return false;
     }
     
-    return hasToken && sessionValid;
+    return hasToken && tokenValid;
   },
 
-  isSessionValid: (): boolean => {
-    const timestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
-    if (!timestamp) {
+  isTokenValid: (): boolean => {
+    const expiryTime = sessionStorage.getItem(TOKEN_EXPIRY_KEY);
+    if (!expiryTime) {
       return false;
     }
 
-    const sessionAge = Date.now() - parseInt(timestamp, 10);
-    return sessionAge < SESSION_TIMEOUT;
-  },
-
-  refreshSession: (): void => {
-    if (authService.isAuthenticated()) {
-      sessionStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
-    }
+    const now = Date.now();
+    const expiry = parseInt(expiryTime, 10);
+    return now < expiry;
   },
 
   getAuthHeader: (): string => {
     const token = authService.getToken();
-    return token ? `Basic ${token}` : '';
+    return token ? `Bearer ${token}` : '';
   },
 
-  getSessionTimeRemaining: (): number => {
-    const timestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
-    if (!timestamp) {
+  getTokenTimeRemaining: (): number => {
+    const expiryTime = sessionStorage.getItem(TOKEN_EXPIRY_KEY);
+    if (!expiryTime) {
       return 0;
     }
 
-    const sessionAge = Date.now() - parseInt(timestamp, 10);
-    const remaining = SESSION_TIMEOUT - sessionAge;
+    const remaining = parseInt(expiryTime, 10) - Date.now();
     return Math.max(0, Math.floor(remaining / 1000));
   },
 };

@@ -12,11 +12,11 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
-        // Проверяем валидность сессии перед каждым запросом
+        // Проверяем валидность JWT токена перед каждым запросом
         if (!authService.isAuthenticated()) {
             authService.logout();
             window.location.href = '/login';
-            return Promise.reject(new Error('Session expired'));
+            return Promise.reject(new Error('Token expired'));
         }
 
         const authHeader = authService.getAuthHeader();
@@ -31,10 +31,7 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-    (response) => {
-        authService.refreshSession();
-        return response;
-    },
+    (response) => response,
     (error) => {
         if (error.response?.status === 401) {
             authService.logout();
