@@ -23,11 +23,8 @@ type Server struct {
 }
 
 func NewServer(store *storage.Storage, port int) *Server {
-	// Инициализируем пользователей с захешированными паролями
-	// В production это должно быть в БД или конфиге
 	users := make(map[string]string)
 
-	// Пример: admin:admin123 (в реальной системе пароли должны быть сложнее)
 	users["admin"] = hashPassword("admin123")
 	users["operator"] = hashPassword("operator123")
 
@@ -38,7 +35,6 @@ func NewServer(store *storage.Storage, port int) *Server {
 	}
 }
 
-// hashPassword создает SHA-256 хэш пароля
 func hashPassword(password string) string {
 	hash := sha256.Sum256([]byte(password))
 	return fmt.Sprintf("%x", hash)

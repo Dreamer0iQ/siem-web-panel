@@ -12,6 +12,13 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
+        // Проверяем валидность сессии перед каждым запросом
+        if (!authService.isAuthenticated()) {
+            authService.logout();
+            window.location.href = '/login';
+            return Promise.reject(new Error('Session expired'));
+        }
+
         const authHeader = authService.getAuthHeader();
         if (authHeader) {
             config.headers.Authorization = authHeader;
@@ -24,7 +31,10 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        authService.refreshSession();
+        return response;
+    },
     (error) => {
         if (error.response?.status === 401) {
             authService.logout();

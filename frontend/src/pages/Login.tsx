@@ -22,29 +22,22 @@ export const Login = () => {
         setLoading(true);
 
         if (!isLogin) {
-            // Register mock
             setError("Registration is currently disabled by administrator.");
             setLoading(false);
             return;
         }
 
         try {
-            authService.login({ username, password });
+            const success = await authService.login({ username, password });
 
-            // Test credentials
-            const response = await fetch('http://localhost:8080/api/dashboard/agents', {
-                headers: { 'Authorization': authService.getAuthHeader() },
-            });
-
-            if (response.ok) {
+            if (success) {
                 navigate('/dashboard');
             } else {
-                setError('Invalid credentials');
-                authService.logout();
+                setError('Invalid username or password');
             }
         } catch (err) {
-            setError('Connection failed');
-            authService.logout();
+            console.error('Login error:', err);
+            setError('Connection failed. Please check if the server is running.');
         } finally {
             setLoading(false);
         }
