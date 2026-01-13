@@ -3,6 +3,7 @@ siem-server
 
 vendor/
 
+data/
 logs/
 *.log
 
