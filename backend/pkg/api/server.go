@@ -70,6 +70,9 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/dashboard/top-processes", s.corsMiddleware(s.authMiddleware(s.handleDashboardTopProcesses)))
 	mux.HandleFunc("/api/dashboard/timeline", s.corsMiddleware(s.authMiddleware(s.handleDashboardTimeline)))
 
+	// Эндпоинт для агента (без JWT аутентификации)
+	mux.HandleFunc("/query", s.corsMiddleware(s.handleAgentIngest))
+
 	// Статика фронтенда
 	fs := http.FileServer(http.Dir("./frontend/dist"))
 	mux.Handle("/", fs)
@@ -252,6 +255,51 @@ func (s *Server) addEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Received %d events from agent", len(req.Events))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": fmt.Sprintf("Added %d events", len(req.Events)),
+		"count":   len(req.Events),
+	})
+}
+
+// handleAgentIngest обрабатывает входящие события от агента (без JWT)
+func (s *Server) handleAgentIngest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Database   string           `json:"database"`
+		Collection string           `json:"collection"`
+		Events     []*storage.Event `json:"events"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Agent ingest error: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Events) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "success",
+			"message": "No events to add",
+			"count":   0,
+		})
+		return
+	}
+
+	if err := s.storage.AddEvents(req.Events); err != nil {
+		log.Printf("Agent ingest storage error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Agent ingested %d events from %s/%s", len(req.Events), req.Database, req.Collection)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
