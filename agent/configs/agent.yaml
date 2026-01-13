@@ -1,11 +1,11 @@
 server:
-  host: "192.168.31.140"
-  port: 8081
+  host: "backend"
+  port: 8080
   database: "security"
   collection: "security_events"
 
 agent:
-  id: "agent-ubuntu-01"
+  id: "agent-docker-01"
   hostname: ""
 
 logging:
@@ -13,17 +13,17 @@ logging:
 
 sources:
   - type: "auditd"
-    path: "/var/log/audit/audit.log"
+    path: "/host/logs/audit/audit.log"
     enabled: true
   - type: "syslog"
-    path: "/var/log/syslog"
+    path: "/host/logs/syslog"
     enabled: true
   - type: "auth"
-    path: "/var/log/auth.log"
+    path: "/host/logs/auth.log"
     enabled: true
   - type: "bash_history"
-    path: "~/.bash_history"
-    enabled: true
+    path: "/host/root/.bash_history"
+    enabled: false
 
 buffer:
   memory_size: 1000
