@@ -14,7 +14,7 @@ logging:
 sources:
   - type: "auditd"
     path: "/host/logs/audit/audit.log"
-    enabled: true
+    enabled: false
   - type: "syslog"
     path: "/host/logs/syslog"
     enabled: true

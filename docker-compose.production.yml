@@ -58,6 +58,7 @@ services:
   agent:
     image: ghcr.io/dreamer0iq/siem-web-panel-agent:latest
     container_name: siem-agent
+    user: root
     pid: "host"
     restart: unless-stopped
     volumes:
