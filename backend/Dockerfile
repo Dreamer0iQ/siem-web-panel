@@ -22,9 +22,6 @@ WORKDIR /app
 
 COPY --from=builder /app/siem-server .
 
-# Копирование данных из builder (если они есть)
-COPY --from=builder /app/data ./data
-
 RUN mkdir -p /app/data && \
     chown -R siem:siem /app
 
