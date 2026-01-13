@@ -1,4 +1,4 @@
-.PHONY: help run-server run-agent run-frontend install-deps build-all clean
+.PHONY: help run-server run-agent run-frontend install-deps build-all clean docker-build docker-up docker-down docker-logs docker-clean docker-rebuild
 
 help:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -12,6 +12,14 @@ help:
 	@echo "  make run-server      - Запустить Backend API (терминал 1)"
 	@echo "  make run-frontend    - Запустить Frontend (терминал 2)"
 	@echo "  make run-agent       - Запустить Agent (терминал 3)"
+	@echo ""
+	@echo "🐳 Docker команды:"
+	@echo "  make docker-build    - Собрать все Docker образы"
+	@echo "  make docker-up       - Запустить все сервисы"
+	@echo "  make docker-down     - Остановить все сервисы"
+	@echo "  make docker-logs     - Показать логи всех сервисов"
+	@echo "  make docker-clean    - Удалить все контейнеры и volumes"
+	@echo "  make docker-rebuild  - Пересобрать и перезапустить"
 	@echo ""
 	@echo "📡 Запуск Agent с динамическим IP:"
 	@echo "  make run-agent-auto  - С автоопределением IP сервера"
@@ -106,3 +114,39 @@ clean:
 quick-start:
 	@echo "🚀 Быстрый запуск Backend API..."
 	cd backend && go run ./cmd/api -port 8080 -data ./data
+
+# Docker команды
+docker-build:
+	@echo "🐳 Сборка Docker образов..."
+	docker-compose build
+
+docker-up:
+	@echo "🚀 Запуск всех сервисов в Docker..."
+	docker-compose up -d
+	@echo ""
+	@echo "✅ Сервисы запущены!"
+	@echo "🌐 Веб-интерфейс: http://localhost"
+	@echo "📡 Backend API: http://localhost/api"
+	@echo "📊 Прямой доступ к Backend: http://localhost:8080"
+	@echo ""
+	@echo "Для просмотра логов: make docker-logs"
+
+docker-down:
+	@echo "🛑 Остановка всех сервисов..."
+	docker-compose down
+
+docker-logs:
+	@echo "📋 Логи сервисов (Ctrl+C для выхода)..."
+	docker-compose logs -f
+
+docker-clean:
+	@echo "🧹 Удаление всех контейнеров, сетей и volumes..."
+	docker-compose down -v
+	docker system prune -f
+
+docker-rebuild:
+	@echo "🔄 Пересборка и перезапуск..."
+	docker-compose down
+	docker-compose build --no-cache
+	docker-compose up -d
+	@echo "✅ Готово!"

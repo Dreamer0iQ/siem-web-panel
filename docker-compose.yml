@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # Backend SIEM API (выполняет роль СУБД с файловым хранилищем)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: siem-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+    networks:
+      - siem-network
+    environment:
+      - PORT=8080
+      - DATA_DIR=/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: siem-frontend
+    restart: unless-stopped
+    networks:
+      - siem-network
+    depends_on:
+      - backend
+
+  # Nginx - обратный прокси сервер
+  nginx:
+    image: nginx:alpine
+    container_name: siem-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - siem-network
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # SIEM Agent (опционально, для тестирования)
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: siem-agent
+    restart: unless-stopped
+    volumes:
+      - agent_logs:/app/logs
+      - /var/log:/host/logs:ro
+    networks:
+      - siem-network
+    environment:
+      - SIEM_SERVER_HOST=backend
+      - SIEM_SERVER_PORT=8080
+      - SIEM_AGENT_ID=docker-agent-01
+    depends_on:
+      backend:
+        condition: service_healthy
+
+# Volumes для хранения данных
+volumes:
+  backend_data:
+    driver: local
+    name: siem_backend_data
+  backend_logs:
+    driver: local
+    name: siem_backend_logs
+  agent_logs:
+    driver: local
+    name: siem_agent_logs
+  nginx_logs:
+    driver: local
+    name: siem_nginx_logs
+
+# Сеть для взаимодействия сервисов
+networks:
+  siem-network:
+    driver: bridge
+    name: siem-network
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
